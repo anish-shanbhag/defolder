@@ -51,7 +51,7 @@ async function getFolder(
   const trimmedPath = path.endsWith("/") ? path : path + "/";
   const absolutePath = userDirectory ? app.getPath(trimmedPath) : trimmedPath;
 
-  const fileNames = await fs.readdir(absolutePath)
+  const fileNames = await fs.readdir(absolutePath);
   files = await Promise.all(fileNames.map(async file => {
     const filePath = absolutePath + file;
     const extensionIndex = file.lastIndexOf(".");

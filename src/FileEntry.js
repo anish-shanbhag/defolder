@@ -1,4 +1,4 @@
-import { Box, HStack, Image, Text } from '@chakra-ui/react';
+import { Box, HStack, Image, Text } from "@chakra-ui/react";
 import icons from "./icon-mappings.json";
 import filesize from "filesize";
 import { areEqual } from "react-window";
@@ -11,9 +11,7 @@ export default memo(function FileEntry({ data, index, style }) {
   const file = files[index];
   if (file.name === "log") console.log("rerendered");
   return (
-    <HStack onClick={() => {
-      onClick(file)
-    }} style={style} spacing={1}>
+    <HStack onClick={() => onClick(file)} style={style} spacing={1}>
       <Image
         src={
           requireFileIcon(`./${

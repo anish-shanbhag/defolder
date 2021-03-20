@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from "react";
-import { Button, Container, HStack, Input, Table, Td } from '@chakra-ui/react';
+import { Button, Container, HStack, Input, Table, Td } from "@chakra-ui/react";
 import { FixedSizeList as List } from "react-window";
 import AutoSizer from "react-virtualized-auto-sizer";
 import FileEntry from "./FileEntry";
@@ -16,16 +16,13 @@ export default function Explorer() {
     if (file.isFolder) {
       setPath(file.path);
     } else {
-      electron.ipcRenderer.send("open", file.path)
+      electron.ipcRenderer.send("open", file.path);
     }
   }
   
   async function goBack() {
     const trimmedPath = path.endsWith("/") ? path.slice(0, -1) : path;
-    openFile({
-      path: path.substring(0, trimmedPath.lastIndexOf("/") + 1),
-      isFolder: true
-    });
+    setPath(path.substring(0, trimmedPath.lastIndexOf("/") + 1));
   }
 
   useEffect(() => {    
@@ -38,7 +35,6 @@ export default function Explorer() {
 
       searchBox.current.value = path;
       fileList.current?.scrollTo(0);
-
     })();
   }, [path]);
 
