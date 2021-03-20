@@ -1,4 +1,4 @@
-import { Box, HStack, Image, styled, Text, Th, Tr } from '@chakra-ui/react';
+import { Box, HStack, Image, Text } from '@chakra-ui/react';
 import icons from "./icon-mappings.json";
 import filesize from "filesize";
 import { areEqual } from "react-window";

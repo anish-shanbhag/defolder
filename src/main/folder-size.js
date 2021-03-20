@@ -3,11 +3,8 @@ const { spawn } = require("promisify-child-process");
 process.on("message", files => {
   const folders = files.filter(file => file.isFolder);
   let robocopies = 0;
-  process.send("start")
-  process.send(JSON.stringify(folders))
   async function getFolderSize() {
     const folder = folders.shift();
-    process.send(JSON.stringify(folder))
     if (folder) {
       robocopies++;
       const args = [`"${folder.path}"`, "//localhost/C$/nul", "/l", "/nfl", "/ndl", "/s", "/bytes"];
