@@ -50,8 +50,9 @@ async function getFolder(
 ) {
   const trimmedPath = path.endsWith("/") ? path : path + "/";
   const absolutePath = userDirectory ? app.getPath(trimmedPath) : trimmedPath;
-
+  console.log(Date.now());
   const fileNames = await fs.readdir(absolutePath);
+  console.log(Date.now());
   files = await Promise.all(fileNames.map(async file => {
     const filePath = absolutePath + file;
     const extensionIndex = file.lastIndexOf(".");
@@ -72,6 +73,8 @@ async function getFolder(
       return null;
     }
   }));
+  console.log(Date.now());
+
   files = files.filter(file => file);
   if (sort !== "name") {
     files = files.sort((a, b) => {
@@ -85,9 +88,11 @@ async function getFolder(
     if (folderSizePid) {
       exec("taskkill /f /t /pid " + folderSizePid);
     }
-    //const worker = new Worker(__dirname + "/folder-size.js", {workerData: "ASDF"});
-    
 
+    /*
+      alternate for fork(): use spawn with a locally included node.exe
+      eliminates loading cursor, but increases install size significantly
+    */
     let folderSizePath = __dirname + "\\folder-size.js";
     const folderSizeProcess = fork(folderSizePath);
     folderSizePid = folderSizeProcess.pid;

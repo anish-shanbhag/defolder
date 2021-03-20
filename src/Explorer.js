@@ -1,8 +1,9 @@
 import React, { useEffect, useState, useRef } from "react";
-import { Button, Container, HStack, Input, Table, Td } from "@chakra-ui/react";
+import { Box, Button, Container, HStack, Input, Table, Td } from "@chakra-ui/react";
 import { FixedSizeList as List } from "react-window";
 import AutoSizer from "react-virtualized-auto-sizer";
 import FileEntry from "./FileEntry";
+import { join } from "path";
 
 export default function Explorer() {
   
@@ -13,6 +14,7 @@ export default function Explorer() {
   const fileList = useRef(null);
 
   function openFile(file) {
+    console.log(file);
     if (file.isFolder) {
       setPath(file.path);
     } else {
@@ -21,8 +23,7 @@ export default function Explorer() {
   }
   
   async function goBack() {
-    const trimmedPath = path.endsWith("/") ? path.slice(0, -1) : path;
-    setPath(path.substring(0, trimmedPath.lastIndexOf("/") + 1));
+    setPath(join(path, "../"));
   }
 
   useEffect(() => {    
@@ -74,9 +75,9 @@ export default function Explorer() {
       <AutoSizer>
         {({ height, width }) => files &&
           <List
-            height={height - 100}
             itemCount={files.length}
-            itemSize={40}
+            itemSize={45}
+            height={height - 100}
             width={width}
             overscanCount={5}
             itemData={{files, onClick: openFile}}
