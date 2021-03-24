@@ -6,7 +6,8 @@
   "homepage": "./",
   "build": {
     "files": [
-      "build/**/*"
+      "build/**/*",
+      "!node_modules/**"
     ],
     "asar": false
   },
@@ -17,19 +18,19 @@
     "electron-is-dev": "2.0.0",
     "filesize": "6.1.0",
     "framer-motion": "3.10.0",
-    "path": "0.12.7",
+    "lodash.throttle": "4.1.1",
+    "node-ipc": "9.1.4",
     "promisify-child-process": "4.1.1",
     "react": "^17.0.1",
     "react-dom": "^17.0.1",
-    "react-router-dom": "5.2.0",
     "react-virtualized-auto-sizer": "1.0.5",
     "react-window": "1.8.6"
   },
   "scripts": {
     "start": "concurrently \"set BROWSER=none && react-scripts start\" \"npm run electron\"",
-    "prebuild": "set GENERATE_SOURCEMAP=false react-scripts build && rollup -c",
+    "prebuild": "set GENERATE_SOURCEMAP=false && react-scripts build && rollup -c",
     "build": "electron-builder build -c.extraMetadata.main=build/main/index.js",
-    "test": "react-scripts test",
+    "server": "react-scripts test",
     "eject": "react-scripts eject",
     "electron": "nodemon --watch src/main --exec \"electron .\"",
     "asar": "npx asar extract dist/win-unpacked/resources/app.asar asar"
@@ -43,6 +44,7 @@
     "concurrently": "6.0.0",
     "electron": "12.0.0",
     "electron-builder": "22.10.5",
+    "electron-devtools-installer": "3.1.1",
     "nodemon": "2.0.7",
     "react-scripts": "4.0.3",
     "rollup": "2.41.5",
