@@ -36,6 +36,7 @@ export default function Explorer() {
         path: folderPath,
         sort: "modified"
       });
+      console.log("new");
       // need to deal with errors from above
       rendered = false;
       setFiles(newFiles);
@@ -109,7 +110,7 @@ export default function Explorer() {
               width={width}
               overscanCount={5}
               itemData={{ files, onClick: openFile}}
-              itemKey={index => files[index].name}
+              itemKey={index => path + files[index].name}
               ref={fileList}
               onScroll={({ scrollOffset, scrollUpdateWasRequested }) => {
                 scrolled = !scrollUpdateWasRequested && scrollOffset !== 0;
