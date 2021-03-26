@@ -1,29 +1,18 @@
 const { contextBridge, ipcRenderer } = require("electron");
 const ipc = require("node-ipc");
+const communicator = require("./communicator");
 
 ipc.config.id = "client";
 ipc.config.retry = 2000;
 ipc.config.silent = true;
 ipc.connectTo("server");
 
-const resolvers = {};
-
-ipc.of.server.on("message", ({ type, count, result }) => {
-  resolvers[type][count](result);
-  delete resolvers[type][count];
-});
-
-contextBridge.exposeInMainWorld("ipc", {
+contextBridge.exposeInMainWorld("server", {
   on: (type, handler) => ipc.of.server.on(type, handler),
-  emit: (type, data) => ipc.of.server.emit(type, data),
-  invoke(type, data) {
-    if (!resolvers[type]) resolvers[type] = [];
-    ipc.of.server.emit(type, {
-      count: resolvers[type].length,
-      data
-    });
-    return new Promise(resolve => resolvers[type].push(resolve));
-  }
+  ...communicator.client({
+    receiver: ipc.of.server,
+    send: data => ipc.of.server.emit("message", data)
+  })
 });
 
 contextBridge.exposeInMainWorld("main", {

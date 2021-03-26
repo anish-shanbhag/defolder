@@ -12,7 +12,7 @@ let completed = 0;
 const send = throttle(() => {
   process.send(updatedFolders);
   updatedFolders = [];
-}, 200, { leading: false });
+}, 500, { leading: false });
 
 process.on("message", ({ path, folders }) => {
   function addUpdatedFolder(name, size) {

@@ -1,6 +1,7 @@
 const { app, BrowserWindow, ipcMain, shell } = require("electron");
 const dev = require("electron-is-dev");
 const { Worker } = require("worker_threads");
+const communicator = require("./communicator");
 
 let mainWindow = null;
 
@@ -31,9 +32,18 @@ async function createWindow() {
   mainWindow.webContents.once("dom-ready", () => mainWindow.webContents.openDevTools());
 
   const server = new Worker(__dirname + "/server.js");
-  server.on("message", m => {
-    console.log(m);
-    console.log(Date.now());
+  communicator.server({
+    receiver: server,
+    send: data => server.postMessage(data),
+    handlers: {
+      getSpecialPath(path) {
+        try {
+          return app.getPath(path);
+        } catch {
+          return null;
+        }
+      }
+    }
   });
 }
 

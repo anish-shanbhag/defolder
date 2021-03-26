@@ -1,7 +1,7 @@
 module.exports = {
   extends: "react-app",
   globals: {
-    ipc: true,
+    server: true,
     main: true
   },
   rules: {

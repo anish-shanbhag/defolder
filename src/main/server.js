@@ -2,45 +2,46 @@ const { parentPort } = require("worker_threads");
 const { fork, exec } = require("child_process");
 const fs = require("fs").promises;
 const ipc = require("node-ipc");
+const { join, normalize } = require("path");
+const communicator = require("./communicator");
 
 let folderSizeProcess = null, count = 0, socket = null, files = null, path = null;
 
-const resolvers = {};
-
-parentPort.on("message", ({ type, count, result }) => {
-  resolvers[type][count](result);
-  delete resolvers[type][count];
+const main = communicator.client({
+  receiver: parentPort,
+  send: data => parentPort.postMessage(data)
 });
 
-function invoke(type, data) {
-  if (!resolvers[type]) resolvers[type] = [];
-  parentPort.postMessage({
-    type,
-    count: resolvers[type].length,
-    data
-  });
-  return new Promise(resolve => resolvers[type].push(resolve));
-}
-
-function emit(type, data) {
-  parentPort.postMessage({ type, data });
-}
-
-setTimeout(() => parentPort.postMessage(Date.now()), 3000);
-
-const invokableHandlers = {
+const handlers = {
+  async resolvePath(newPath) {
+    let normalized = normalize(newPath + "\\").toLowerCase();
+    const [root, ...rest] = normalized.split("\\");
+    if (!root.includes(":")) {
+      const resolvedRoot = await main.invoke("getSpecialPath", root);
+      if (resolvedRoot) {
+        normalized = join(resolvedRoot, ...rest) + "\\";
+      } else {
+        return null;
+      }
+    }
+    try {
+      path = (await fs.realpath(normalized)).replace(/\\/g, "/") + "\\";
+      const casedRoot = root[0].toUpperCase() + root.slice(1);
+      if (rest[0]) {
+        const casedRest = path.slice(normalized.indexOf(rest.join("\\")));
+        return join(casedRoot, casedRest).replace(/\\/g, "/");
+      } else {
+        return casedRoot + "/";
+      }
+    } catch {
+      return null;
+    }
+  },
   async getFolder({
-    path: newPath,
-    isUserDirectory = false,
     sort = "modified",
     reverse = false,
     foldersFirst = false
   }) {
-    count++;
-    // const absolutePath = isUserDirectory ? app.getPath(newPath) : newPath;
-    const trimmedPath = newPath.endsWith("/") ? newPath : newPath + "/";
-    path = trimmedPath;
-
     const fileNames = await fs.readdir(path);
     files = await Promise.all(fileNames.map(async file => {
       const filePath = path + file;
@@ -67,10 +68,7 @@ const invokableHandlers = {
       });
     }
     return files;
-  }
-}
-
-const handlers = {
+  },
   async getFolderSizes() {
     if (folderSizeProcess) {
       const pid = folderSizeProcess.pid;
@@ -95,16 +93,11 @@ ipc.config.silent = true;
 
 ipc.serve(() => {
   ipc.server.on("connect", clientSocket => socket = clientSocket);
-  for (const type in invokableHandlers) {
-    // eslint-disable-next-line no-loop-func
-    ipc.server.on(type, async ({ count, data }) => {
-      const result = await invokableHandlers[type](data);
-      ipc.server.emit(socket, "message", { type, count, result });
-    });
-  }
-  for (const type in handlers) {
-    ipc.server.on(type, handlers[type]);
-  }
+  communicator.server({
+    receiver: ipc.server,
+    send: data => ipc.server.emit(socket, "message", data),
+    handlers
+  });
 });
 
 ipc.server.start();

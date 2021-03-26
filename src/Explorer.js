@@ -29,23 +29,28 @@ export default function Explorer() {
   }
 
   async function openFolder(folderPath) {
-    const newFiles = await ipc.invoke("getFolder", { 
-      path: folderPath,
-      sort: "modified"
-    });
-    // need to deal with errors from above
-    rendered = false;
-    setFiles(newFiles);
-    path = folderPath;
-    if (searchBox.current) searchBox.current.value = path;
-    if (scrolled) {
-      fileList.current?.scrollTo(0);
+    const resolvedPath = await server.invoke("resolvePath", folderPath);
+    if (resolvedPath && path !== resolvedPath) {
+      path = resolvedPath;
+      const newFiles = await server.invoke("getFolder", { 
+        path: folderPath,
+        sort: "modified"
+      });
+      // need to deal with errors from above
+      rendered = false;
+      setFiles(newFiles);
+      if (searchBox.current) searchBox.current.value = path;
+      if (scrolled) {
+        fileList.current?.scrollTo(0);
+      }
+    } else {
+      console.log("Invalid path");
     }
   }
 
   
   useEffect(() => {
-    ipc.on("updateFolderSizes", updatedFolders => {
+    server.on("updateFolderSizes", updatedFolders => {
       setFiles(previousFiles => {
         const filesCopy = previousFiles.slice();
         for (const { name, size } of updatedFolders) {
@@ -59,13 +64,13 @@ export default function Explorer() {
       });
     });
 
-    openFolder("C:/");
+    openFolder("downloads\\cRu-1.4.2");
   }, []);
 
   useEffect(() => {
     if (!rendered) {
       rendered = true;
-      setTimeout(() => ipc.emit("getFolderSizes"), 0);
+      setTimeout(() => server.emit("getFolderSizes"), 0);
     }
   }, [files]);
 
