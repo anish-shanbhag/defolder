@@ -1,7 +1,8 @@
 module.exports = {
   extends: "react-app",
   globals: {
-    ipc: true
+    ipc: true,
+    main: true
   },
   rules: {
     quotes: ["warn", "double", {

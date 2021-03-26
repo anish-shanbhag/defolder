@@ -1,24 +1,49 @@
+const { parentPort } = require("worker_threads");
 const { fork, exec } = require("child_process");
 const fs = require("fs").promises;
 const ipc = require("node-ipc");
-const { app, shell } = require("electron");
 
-let folderSizePid = null, count = 0, socket = null;
+let folderSizeProcess = null, count = 0, socket = null, files = null, path = null;
 
-const handlers = {
+const resolvers = {};
+
+parentPort.on("message", ({ type, count, result }) => {
+  resolvers[type][count](result);
+  delete resolvers[type][count];
+});
+
+function invoke(type, data) {
+  if (!resolvers[type]) resolvers[type] = [];
+  parentPort.postMessage({
+    type,
+    count: resolvers[type].length,
+    data
+  });
+  return new Promise(resolve => resolvers[type].push(resolve));
+}
+
+function emit(type, data) {
+  parentPort.postMessage({ type, data });
+}
+
+setTimeout(() => parentPort.postMessage(Date.now()), 3000);
+
+const invokableHandlers = {
   async getFolder({
-    path,
-    userDirectory = false,
+    path: newPath,
+    isUserDirectory = false,
     sort = "modified",
     reverse = false,
     foldersFirst = false
   }) {
-    const trimmedPath = path.endsWith("/") ? path : path + "/";
-    const absolutePath = userDirectory ? app.getPath(trimmedPath) : trimmedPath;
+    count++;
+    // const absolutePath = isUserDirectory ? app.getPath(newPath) : newPath;
+    const trimmedPath = newPath.endsWith("/") ? newPath : newPath + "/";
+    path = trimmedPath;
 
-    const fileNames = await fs.readdir(absolutePath);
-    let files = await Promise.all(fileNames.map(async file => {
-      const filePath = absolutePath + file;
+    const fileNames = await fs.readdir(path);
+    files = await Promise.all(fileNames.map(async file => {
+      const filePath = path + file;
       try {
         const stats = await fs.lstat(filePath);
         const isFolder = stats.isDirectory();
@@ -41,33 +66,27 @@ const handlers = {
         return folderPriority ||  (b[sort] - a[sort]) * (reverse ? -1 : 1);
       });
     }
+    return files;
+  }
+}
 
-    ipc.server.emit(socket, "getFolder", files);
-
-    // TODO: figure out a better way to delay this
-    setTimeout(() => {
-      const currentCount = ++count;
-      if (folderSizePid) {
-        exec("taskkill /f /t /pid " + folderSizePid);
+const handlers = {
+  async getFolderSizes() {
+    if (folderSizeProcess) {
+      const pid = folderSizeProcess.pid;
+      exec("taskkill /f /t /pid " + pid);
+      folderSizeProcess = null;
+    }
+    const folders = files.filter(file => file.isFolder).map(file => file.name);
+    const currentCount = count;
+    folderSizeProcess = fork(__dirname + "/folder-size.js");
+    folderSizeProcess.on("message", updatedFolders => {
+      if (count === currentCount) {
+        ipc.server.emit(socket, "updateFolderSizes", updatedFolders);
       }
-      /*
-        alternate for fork(): use spawn with a locally included node.exe
-        eliminates loading cursor, but increases install size significantly
-      */
-      const folderSizeProcess = fork(__dirname + "/folder-size.js");
-      folderSizePid = folderSizeProcess.pid;
-      folderSizeProcess.send({
-        path,
-        folders: files.filter(file => file.isFolder).map(file => file.name)
-      });
-      folderSizeProcess.on("message", updatedFile => {
-        if (count === currentCount) {
-          ipc.server.emit(socket, "updateFile", updatedFile);
-        }
-      });
-    }, 1000);
-  },
-  open: path => shell.openPath(path)
+    });
+    folderSizeProcess.send({ path, folders });
+  }
 }
 
 ipc.config.id = "server";
@@ -76,7 +95,16 @@ ipc.config.silent = true;
 
 ipc.serve(() => {
   ipc.server.on("connect", clientSocket => socket = clientSocket);
-  for (const type in handlers) ipc.server.on(type, handlers[type]);
+  for (const type in invokableHandlers) {
+    // eslint-disable-next-line no-loop-func
+    ipc.server.on(type, async ({ count, data }) => {
+      const result = await invokableHandlers[type](data);
+      ipc.server.emit(socket, "message", { type, count, result });
+    });
+  }
+  for (const type in handlers) {
+    ipc.server.on(type, handlers[type]);
+  }
 });
 
 ipc.server.start();

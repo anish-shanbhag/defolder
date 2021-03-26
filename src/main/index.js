@@ -1,6 +1,6 @@
-const { app, BrowserWindow } = require("electron");
+const { app, BrowserWindow, ipcMain, shell } = require("electron");
 const dev = require("electron-is-dev");
-const { spawn } = require("child_process");
+const { Worker } = require("worker_threads");
 
 let mainWindow = null;
 
@@ -27,18 +27,17 @@ async function createWindow() {
 
   mainWindow.on("closed", () => mainWindow = null);
 
-  spawn(
-    process.execPath,
-    [__dirname + "/server.js"],
-    {
-      stdio: "inherit",
-      env: { ELECTRON_RUN_AS_NODE: 1 }
-    }
-  );
-
   require("./dev");
   mainWindow.webContents.once("dom-ready", () => mainWindow.webContents.openDevTools());
+
+  const server = new Worker(__dirname + "/server.js");
+  server.on("message", m => {
+    console.log(m);
+    console.log(Date.now());
+  });
 }
+
+ipcMain.on("open", (event, path) => shell.openPath(path));
 
 app.on("ready", createWindow);
 

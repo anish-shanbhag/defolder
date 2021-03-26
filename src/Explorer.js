@@ -7,7 +7,7 @@ import { join } from "path";
 import { motion } from "framer-motion";
 
 // using globals instead of useRef because there is only one Explorer component
-let path = null, scrolled = false;
+let path = null, scrolled = false, rendered = true;
 
 export default function Explorer() {
   
@@ -20,7 +20,7 @@ export default function Explorer() {
     if (file.isFolder) {
       openFolder(join(path, file.name));
     } else {
-      ipc.emit("open", join(path, file.name));
+      main.send("open", join(path, file.name));
     }
   }
   
@@ -29,38 +29,45 @@ export default function Explorer() {
   }
 
   async function openFolder(folderPath) {
-    // may want to move setting path to after the folder is received
-    path = folderPath;
-    ipc.emit("getFolder", { 
-      path,
+    const newFiles = await ipc.invoke("getFolder", { 
+      path: folderPath,
       sort: "modified"
     });
+    // need to deal with errors from above
+    rendered = false;
+    setFiles(newFiles);
+    path = folderPath;
+    if (searchBox.current) searchBox.current.value = path;
+    if (scrolled) {
+      fileList.current?.scrollTo(0);
+    }
   }
 
   
   useEffect(() => {
-    openFolder("C:/");
-
-    ipc.on("getFolder", newFiles => {
-      setFiles(newFiles);
-      if (searchBox.current) searchBox.current.value = path;
-      if (scrolled) {
-        fileList.current?.scrollTo(0);
-      }
-    });
-
-    ipc.on("updateFile", ({ name, size }) => {
+    ipc.on("updateFolderSizes", updatedFolders => {
       setFiles(previousFiles => {
         const filesCopy = previousFiles.slice();
-        const index = filesCopy.findIndex(file => file.name === name);
-        filesCopy[index] = {
-          ...filesCopy[index],
-          size
+        for (const { name, size } of updatedFolders) {
+          const index = filesCopy.findIndex(file => file.name === name);
+          filesCopy[index] = {
+            ...filesCopy[index],
+            size
+          }
         }
         return filesCopy;
       });
     });
+
+    openFolder("C:/");
   }, []);
+
+  useEffect(() => {
+    if (!rendered) {
+      rendered = true;
+      setTimeout(() => ipc.emit("getFolderSizes"), 0);
+    }
+  }, [files]);
 
   return (
     <Profiler id="a" onRender={(id, b, actualDuration) => /* console.log(id, Date.now(), actualDuration)*/ null}>
