@@ -3,11 +3,11 @@ import icons from "./icon-mappings.json";
 import filesize from "filesize";
 import { memo, forwardRef } from "react";
 import { motion, useAnimation } from "framer-motion";
+import HoverAnimation from "./HoverAnimation";
 
 const requireFileIcon = require.context("./assets/file-icons", true);
 
 const MotionHStack = motion(forwardRef((props, ref) => <HStack {...props} ref={ref}/>));
-const MotionBox = motion(forwardRef((props, ref) => <Box {...props} ref={ref}/>))
 
 export default memo(function FileEntry({ data, index, style }) {
   const { files, onClick } = data;
@@ -21,22 +21,9 @@ export default memo(function FileEntry({ data, index, style }) {
     extension = split.pop();
     baseName = split.join(".");
   }
+  
   const controls = useAnimation();
-  const hoverAnimation = {
-    initial: {
-      background: "none",
-      backgroundSize: "200% 100%",
-      backgroundPosition:"0 0",
-    },
-    hovered: {
-      backgroundPosition: "100% 0",
-      background: "linear-gradient(to right, #0072ff, #0072ff, #00c6ff)",
-      transition: {
-        duration: 0.2,
-        ease: "easeOut"
-      }
-    }
-  }
+
   return (
     <MotionHStack
       style={style}
@@ -50,43 +37,28 @@ export default memo(function FileEntry({ data, index, style }) {
       userSelect="none"
       cursor="pointer"
       animate={controls}
-      variants={hoverAnimation}
-      initial="initial"
-      onHoverStart={() => controls.start("hovered")}
-      onHoverEnd={() => controls.start("initial")}
+      onHoverStart={() => {
+        controls.start("hover");
+      }}
+      onHoverEnd={() => {
+        controls.start("initial");
+      }}
       whileTap={{
         scale: 0.97,
         transition: 0.1
       }}
     >
-      <MotionBox
-        zIndex="-1"
-        position="absolute"
-        top="0%"
-        left={0}
-        filter="blur(10px)"
-        w="100%"
-        h="100%"
-        variants={{
-          initial: {
-            ...hoverAnimation.initial,
-            opacity: 0
-          },
-          hovered: {
-            ...hoverAnimation.hovered,
-            opacity: 1,
-            transition: {
-              opacity: {
-                repeat: Infinity,
-                repeatType: "reverse",
-                duration: 1,
-                ease: "easeOut"
-              }
-            }
-          }
+      <HoverAnimation opacityTransition={{ duration: 0 }} zIndex="-1"/>
+      <HoverAnimation
+        opacityTransition={{
+          repeat: Infinity,
+          repeatType: "reverse",
+          duration: 1,
+          ease: "easeOut"
         }}
-      >
-      </MotionBox>
+        zIndex="-2"
+        filter="blur(5px)"
+      />
       <Image
         src={
           requireFileIcon(`./${

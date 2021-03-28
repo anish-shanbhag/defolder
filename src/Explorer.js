@@ -65,7 +65,7 @@ export default function Explorer() {
       });
     });
 
-    openFolder("downloads\\cRu-1.4.2");
+    openFolder("C://");
   }, []);
 
   useEffect(() => {
