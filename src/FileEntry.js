@@ -1,5 +1,5 @@
 import { Box, HStack, Image, Text } from "@chakra-ui/react";
-import icons from "./icon-mappings.json";
+import icons from "./assets/icon-mappings.json";
 import filesize from "filesize";
 import { memo, forwardRef } from "react";
 import { motion, useAnimation } from "framer-motion";
@@ -8,6 +8,8 @@ import HoverAnimation from "./HoverAnimation";
 const requireFileIcon = require.context("./assets/file-icons", true);
 
 const MotionHStack = motion(forwardRef((props, ref) => <HStack {...props} ref={ref}/>));
+const MotionImage = motion(forwardRef((props, ref) => <Image {...props} ref={ref}/>));
+
 
 export default memo(function FileEntry({ data, index, style }) {
   const { files, onClick } = data;
@@ -28,7 +30,7 @@ export default memo(function FileEntry({ data, index, style }) {
     <MotionHStack
       style={style}
       onClick={() => onClick(file)}
-      spacing={1}
+      spacing={0}
       pl={3}
       py={1}
       ml={4}
@@ -37,10 +39,10 @@ export default memo(function FileEntry({ data, index, style }) {
       userSelect="none"
       cursor="pointer"
       animate={controls}
-      onHoverStart={() => {
+      onMouseOver={() => {
         controls.start("hover");
       }}
-      onHoverEnd={() => {
+      onMouseOut={() => {
         controls.start("initial");
       }}
       whileTap={{
@@ -59,7 +61,7 @@ export default memo(function FileEntry({ data, index, style }) {
         zIndex="-2"
         filter="blur(5px)"
       />
-      <Image
+      <motion.img
         src={
           requireFileIcon(`./${
             file.isFolder ? "folder" :
@@ -69,7 +71,14 @@ export default memo(function FileEntry({ data, index, style }) {
           }.svg`).default
         }
         width="30px"
-        ignoreFallback
+        variants={{
+          initial: {
+            filter: "none"
+          },
+          hover: {
+            filter: "drop-shadow(0 0 5px black)"
+          }
+        }}
       />
       
       <Text
