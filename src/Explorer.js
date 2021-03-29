@@ -5,6 +5,7 @@ import AutoSizer from "react-virtualized-auto-sizer";
 import FileEntry from "./FileEntry";
 import { join } from "path";
 import { motion } from "framer-motion";
+import SearchBox from "./SearchBox";
 
 // using globals instead of useRef because there is only one Explorer component
 let path = null, scrolled = false, rendered = true;
@@ -80,25 +81,7 @@ export default function Explorer() {
       <Container maxW="container.xl" minH="90vh">
         <HStack py={4} verticalAlign="middle">
           <Button onClick={goBack} colorScheme="blue" boxShadow="lg" m={2}>Back</Button>
-          <Input
-            ref={searchBox}
-            placeholder="Enter directory"
-            px={3}
-            py={6}
-            variant="filled"
-            bg="gray.600"
-            boxShadow="0 10px 20px 2px black"
-            fontWeight={700}
-            letterSpacing={0}
-            fontSize="3xl"
-            _hover={{ bg: "gray.500", boxShadow: "0 10px 40px 5px black" }}
-            _focus={{ 
-              bg: "gray.600",
-              borderRadius: 20,
-              boxShadow: "0 10px 60px 5px black"
-            }}
-            onKeyDown={e => e.key === "Enter" && openFolder(e.target.value)}
-          />
+          <SearchBox openFolder={openFolder}/>
         </HStack>
 
         <AutoSizer>
@@ -121,17 +104,6 @@ export default function Explorer() {
           }
         </AutoSizer>
       </Container>
-      <motion.div
-        animate={{
-          backgroundColor: "#FF0000",
-          transition: {
-            duration: 0.5,
-            yoyo: Infinity
-          }
-        }}
-      >
-        Test Element
-      </motion.div>
     </Profiler>
   );
 }

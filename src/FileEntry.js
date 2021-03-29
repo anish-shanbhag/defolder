@@ -1,15 +1,22 @@
-import { Box, HStack, Image, Text } from "@chakra-ui/react";
+import { Box, HStack, Text } from "@chakra-ui/react";
 import icons from "./assets/icon-mappings.json";
 import filesize from "filesize";
-import { memo, forwardRef } from "react";
+import { memo, useEffect, useRef } from "react";
 import { motion, useAnimation } from "framer-motion";
-import HoverAnimation from "./HoverAnimation";
 
 const requireFileIcon = require.context("./assets/file-icons", true);
 
-const MotionHStack = motion(forwardRef((props, ref) => <HStack {...props} ref={ref}/>));
-const MotionImage = motion(forwardRef((props, ref) => <Image {...props} ref={ref}/>));
+const MotionHStack = motion(HStack), MotionBox = motion(Box), MotionText = motion(Text);
 
+const hoverShadow = {
+  initial: {
+    filter: "drop-shadow(0 0 5px rgba(0, 0, 0, 0))"
+  },
+  hover: {
+    filter: "drop-shadow(0 0 5px rgba(0, 0, 0, 1))",
+    transition: { duration: 0 }
+  }
+}
 
 export default memo(function FileEntry({ data, index, style }) {
   const { files, onClick } = data;
@@ -26,6 +33,11 @@ export default memo(function FileEntry({ data, index, style }) {
   
   const controls = useAnimation();
 
+  const mounted = useRef(false);
+  useEffect(() => {
+    mounted.current = true;
+  }, []);
+
   return (
     <MotionHStack
       style={style}
@@ -34,32 +46,70 @@ export default memo(function FileEntry({ data, index, style }) {
       pl={3}
       py={1}
       ml={4}
-      borderRadius={5}
+      borderRadius={10}
       maxW="95%"
       userSelect="none"
       cursor="pointer"
+      backgroundSize="200% 100%"
+      initial="initial"
       animate={controls}
-      onMouseOver={() => {
-        controls.start("hover");
+      variants={{
+        initial: {
+          backgroundPosition: "0 0",
+          backgroundImage: `linear-gradient(to right${", rgba(0, 0, 0, 0)".repeat(3)})`,
+          transition: {
+            backgroundPosition: { duration: 0 },
+            backgroundImage: { duration: 0 }
+          }
+        },
+        hover: {
+          backgroundPosition: "100% 0",
+          backgroundImage: "linear-gradient(to right, #0072ff, #0072ff, #00c6ff)",
+          transition: {
+            backgroundPosition: {
+              duration: 1,
+              ease: "easeOut"
+            },
+            backgroundImage: { duration: 0 }
+          }
+        }
       }}
-      onMouseOut={() => {
-        controls.start("initial");
-      }}
-      whileTap={{
-        scale: 0.97,
-        transition: 0.1
-      }}
+      onMouseOver={() => mounted.current &&  controls.start("hover")}
+      onMouseOut={() => mounted.current &&  controls.start("initial")}
+      whileTap={{ scale: 0.97 }}
     >
-      <HoverAnimation opacityTransition={{ duration: 0 }} zIndex="-1"/>
-      <HoverAnimation
-        opacityTransition={{
-          repeat: Infinity,
-          repeatType: "reverse",
-          duration: 1,
-          ease: "easeOut"
-        }}
-        zIndex="-2"
+      <MotionBox
+        zIndex="-1"
         filter="blur(5px)"
+        w="100%"
+        h="100%"
+        position="absolute"
+        left={0}
+        backgroundSize="200% 100%"
+        backgroundImage="linear-gradient(to right, #0072ff, #0072ff, #00c6ff)"
+        variants={{
+          initial: {
+            backgroundPosition:"0 0",
+            opacity: 0,
+            transition: { opacity: { duration: 0 } }
+          },
+          hover: {
+            backgroundPosition: "100% 0",
+            opacity: 1,
+            transition: {
+              backgroundPosition: {
+                duration: 1,
+                ease: "easeOut"
+              },
+              opacity: {
+                repeat: Infinity,
+                repeatType: "reverse",
+                duration: 1,
+                ease: "easeOut"
+              }
+            }
+          }
+        }}
       />
       <motion.img
         src={
@@ -71,28 +121,24 @@ export default memo(function FileEntry({ data, index, style }) {
           }.svg`).default
         }
         width="30px"
-        variants={{
-          initial: {
-            filter: "none"
-          },
-          hover: {
-            filter: "drop-shadow(0 0 5px black)"
-          }
-        }}
+        variants={hoverShadow}
       />
       
-      <Text
+      <MotionText
         px={2}
         fontWeight={500}
         fontSize="2xl"
         letterSpacing={-0.2}
         isTruncated
         w="50%"
+        variants={hoverShadow}
       >
         {baseName}
         <Box as="span" color="gray.400">{extension && ("." + extension)}</Box>
-      </Text>
-      <Text as="span" fontSize="xl">{file.size === undefined ? "Loading..." : filesize(file.size)}</Text>
+      </MotionText>
+      <MotionText variants={hoverShadow} as="span" fontSize="xl">
+        {file.size === undefined ? "Loading..." : filesize(file.size)}
+      </MotionText>
     </MotionHStack>
   );
 }, (prev, next) => {
