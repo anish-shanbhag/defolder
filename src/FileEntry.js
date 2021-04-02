@@ -30,7 +30,7 @@ export default memo(function FileEntry({ data, index, style }) {
     extension = split.pop();
     baseName = split.join(".");
   }
-  
+
   const controls = useAnimation();
 
   const mounted = useRef(false);
@@ -42,13 +42,13 @@ export default memo(function FileEntry({ data, index, style }) {
     <MotionHStack
       style={style}
       onClick={() => onClick(file)}
+      userSelect="none"
       spacing={0}
       pl={3}
       py={1}
       ml={4}
       borderRadius={10}
       maxW="95%"
-      userSelect="none"
       cursor="pointer"
       backgroundSize="200% 100%"
       initial="initial"
@@ -74,8 +74,8 @@ export default memo(function FileEntry({ data, index, style }) {
           }
         }
       }}
-      onMouseOver={() => mounted.current &&  controls.start("hover")}
-      onMouseOut={() => mounted.current &&  controls.start("initial")}
+      onMouseOver={() => mounted.current && controls.start("hover")}
+      onMouseOut={() => mounted.current && controls.start("initial")}
       whileTap={{ scale: 0.97 }}
     >
       <MotionBox
@@ -89,7 +89,7 @@ export default memo(function FileEntry({ data, index, style }) {
         backgroundImage="linear-gradient(to right, #0072ff, #0072ff, #00c6ff)"
         variants={{
           initial: {
-            backgroundPosition:"0 0",
+            backgroundPosition: "0 0",
             opacity: 0,
             transition: { opacity: { duration: 0 } }
           },
@@ -113,17 +113,19 @@ export default memo(function FileEntry({ data, index, style }) {
       />
       <motion.img
         src={
-          requireFileIcon(`./${
-            file.isFolder ? "folder" :
-            icons.svgMapping[icons.byFileName[file.name]] ||
-            (extension && icons.svgMapping[icons.byExtension[extension]]) ||
-            "file"
-          }.svg`).default
+          requireFileIcon(
+            `./
+              ${file.isFolder ? "folder" :
+              icons.svgMapping[icons.byFileName[file.name]] ||
+              (extension && icons.svgMapping[icons.byExtension[extension]]) ||
+              "file"}
+            .svg`
+          ).default
         }
         width="30px"
         variants={hoverShadow}
       />
-      
+
       <MotionText
         px={2}
         fontWeight={500}
@@ -131,12 +133,12 @@ export default memo(function FileEntry({ data, index, style }) {
         letterSpacing={-0.2}
         isTruncated
         w="50%"
-        variants={hoverShadow}
+      // variants={hoverShadow}
       >
         {baseName}
         <Box as="span" color="gray.400">{extension && ("." + extension)}</Box>
       </MotionText>
-      <MotionText variants={hoverShadow} as="span" fontSize="xl">
+      <MotionText /* variants={hoverShadow} */ as="span" fontSize="xl">
         {file.size === undefined ? "Loading..." : filesize(file.size)}
       </MotionText>
     </MotionHStack>
@@ -145,6 +147,6 @@ export default memo(function FileEntry({ data, index, style }) {
   const prevFile = prev.data.files[prev.index];
   const prevKeys = Object.keys(prevFile);
   const nextFile = next.data.files[next.index];
-  return prevKeys.length === Object.keys(nextFile).length 
+  return prevKeys.length === Object.keys(nextFile).length
     && prevKeys.every(key => prevFile[key] === nextFile[key]);
 });

@@ -4,11 +4,13 @@ import { FixedSizeList as List } from "react-window";
 import AutoSizer from "react-virtualized-auto-sizer";
 import FileEntry from "./FileEntry";
 import { join } from "path";
-import { motion } from "framer-motion";
+import { useAnimation, motion } from "framer-motion";
 import SearchBox from "./SearchBox";
 
 // using globals instead of useRef because there is only one Explorer component
 let path = null, scrolled = false, rendered = true;
+
+const MotionSearchBox = motion(SearchBox);
 
 export default function Explorer() {
   
@@ -67,6 +69,7 @@ export default function Explorer() {
     });
 
     openFolder("C://");
+
   }, []);
 
   useEffect(() => {
@@ -81,7 +84,7 @@ export default function Explorer() {
       <Container maxW="container.xl" minH="90vh">
         <HStack py={4} verticalAlign="middle">
           <Button onClick={goBack} colorScheme="blue" boxShadow="lg" m={2}>Back</Button>
-          <SearchBox openFolder={openFolder}/>
+          <MotionSearchBox openFolder={openFolder} />
         </HStack>
 
         <AutoSizer>

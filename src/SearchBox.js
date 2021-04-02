@@ -1,23 +1,48 @@
-import { Input, Box } from "@chakra-ui/react";
-import { useState, useRef, useEffect } from "react";
-import ReactDOMServer from "react-dom/server";
+import { Box } from "@chakra-ui/react";
+import { useState, useRef, useLayoutEffect, useEffect } from "react";
+import { motion, useAnimation } from "framer-motion";
 
-
+const MotionBox = motion(Box);
 export default function SearchBox({ openFolder }) {
-
-  const [value, setValue] = useState("asdfasdf");
-  const [selected, setSelected] = useState("");
+  const [value, setValue] = useState("Anish");
+  const [focused, setFocused] = useState(false);
 
   const input = useRef(null);
   const search = useRef(null);
-  const hovered = useRef(false);
-  const caretPosition = useRef(0);
+  const caretIndex = useRef(0);
 
-  useEffect(() => {
+  function changeValue(e) {
+    const range = window.getSelection().getRangeAt(0);
+    const clonedRange = range.cloneRange();
+    clonedRange.selectNodeContents(search.current);
+
+    clonedRange.setEnd(range.startContainer, range.startOffset);
+    let start = clonedRange.toString().length;
+    clonedRange.setEnd(range.endContainer, range.endOffset);
+    let end = clonedRange.toString().length;
+
+    if (start === end) {
+      start -= e.key === "Backspace";
+      end += e.key === "Delete";
+    }
+    const text = search.current.textContent;
+    start = Math.max(0, start);
+    end = Math.min(text.length, end);
+
+    const newText = e.key === "Backspace" || e.key === "Delete" ? "" :
+      e.key ?? e.clipboardData.getData("text/plain").replace(/\n/g, "");
+    caretIndex.current = start + newText.length;
+    setValue(text.slice(0, start) + newText + text.slice(end));
+    e.preventDefault();
+  }
+
+  useLayoutEffect(() => {
+    if (!focused) return;
     const range = document.createRange();
     range.setStart(search.current, 0);
     range.selectNode(search.current);
-    let chars = caretPosition.current;
+    let chars = caretIndex.current;
+
     function addToRange(node) {
       if (chars === 0) range.setEnd(node, 0);
       else if (node.nodeType === Node.TEXT_NODE) {
@@ -34,80 +59,93 @@ export default function SearchBox({ openFolder }) {
         }
       }
     }
+
     addToRange(search.current);
     range.collapse(false);
     const selection = window.getSelection();
     selection.removeAllRanges();
     selection.addRange(range);
-  }, [value]);
+
+    const caretPosition = range.getBoundingClientRect().right;
+    const inputRightEdge = search.current.getBoundingClientRect().right;
+    if (caretPosition > inputRightEdge) {
+      search.current.scrollLeft += caretPosition - inputRightEdge + 2;
+    }
+  }, [value, focused]);
+
+  useEffect(() => {
+    //setInterval(() => controls.start({ opacity: Math.random() }), 2000);
+  }, []);
+
+  const controls = useAnimation();
 
   return (
-    <>
-      <Input
-        placeholder="Enter directory"
-        w="50%"
-        ref={input}
-        px={3}
-        py={6}
-        variant="filled"
-        bg="gray.600"
-        boxShadow="0 10px 20px 2px black"
-        fontWeight={700}
-        letterSpacing={0}
-        fontSize="3xl"
-        _hover={{ bg: "gray.500", boxShadow: "0 10px 40px 5px black" }}
-        _focus={{
-          bg: "gray.600",
-          borderRadius: 20,
-          boxShadow: "0 10px 60px 5px black"
-        }}
-        onKeyDown={e => e.key === "Enter" && openFolder(e.target.value)}
-        onSelect={e => {
-          setSelected(e.target.value.slice(e.target.selectionStart, e.target.selectionEnd));
-        }}
-      />
+    <Box
+      fontSize="3xl"
+      fontWeight={700}
+      bg="gray.600"
+      boxShadow="0 10px 20px 2px black"
+      minW="90%"
+      px={4}
+      py={2}
+      borderRadius={10}
+    >
       <Box
         ref={search}
-        w="50%"
-        fontSize="3xl"
-        fontWeight={700}
-        pl={3}
+        contentEditable
+        suppressContentEditableWarning
         cursor="text"
-        bg="gray.600"
-        boxShadow="0 10px 20px 2px black"
-        borderRadius={10}
-        onMouseEnter={() => hovered.current = true}
-        onMouseLeave={() => hovered.current = false}
-        contentEditable="true"
+        border="1px solid transparent"
         _focus={{ outline: "none" }}
-        onInput={() => {
-          const selection = window.getSelection();
-          let chars = selection.focusOffset, node = selection.focusNode;
-          function isChildOfSearchBox(node) {
-            while ((node = node.parentNode)) {
-              if (node === search.current) return true;
-            }
-            return false;
+        spellCheck={false}
+        whiteSpace="pre"
+        overflowX="auto"
+        sx={{
+          "::-webkit-scrollbar": {
+            display: "none"
+          },
+          "*": {
+            whiteSpace: "pre",
+            display: "inline-block"
           }
-          while (isChildOfSearchBox(node)) {
-            if (node.previousSibling) {
-              node = node.previousSibling;
-              chars += node.textContent.length;
-            } else node = node.parentNode;
-          }
-          caretPosition.current = chars;
-          setValue(search.current.textContent);
         }}
-        dangerouslySetInnerHTML={{
-          __html: ReactDOMServer.renderToString(
-            <>
-              <Box as="span" bg="green">{value.slice(0, 2)}</Box>
-              <Box as="span" bg="red">{value.slice(2)}</Box>
-            </>
-          )
+        onKeyDown={e => {
+          if (e.key === "Backspace" || e.key === "Delete") changeValue(e);
+          else if (e.key === "Enter") e.preventDefault();
         }}
+        onKeyPress={changeValue}
+        onPaste={changeValue}
+        onBlur={() => setFocused(false)}
+        onFocus={() => setFocused(true)}
       >
+        {value === "" ?
+          focused ? <br /> :
+            <MotionBox
+              color="gray.300"
+              initial="initial"
+              animate="animate"
+              variants={{
+                initial: {
+                  scale: 0.9,
+                  opacity: 0,
+                },
+                animate: {
+                  scale: 1,
+                  opacity: 1,
+                  transition: { duration: 0.2 }
+                }
+              }}
+            >
+              Search for anything...
+            </MotionBox>
+          :
+          <MotionBox
+            animate={controls}
+          >
+            {value}
+          </MotionBox>
+        }
       </Box>
-    </>
+    </Box>
   );
 }
