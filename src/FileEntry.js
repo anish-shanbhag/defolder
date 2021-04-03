@@ -114,12 +114,10 @@ export default memo(function FileEntry({ data, index, style }) {
       <motion.img
         src={
           requireFileIcon(
-            `./
-              ${file.isFolder ? "folder" :
+            `./${file.isFolder ? "folder" :
               icons.svgMapping[icons.byFileName[file.name]] ||
               (extension && icons.svgMapping[icons.byExtension[extension]]) ||
-              "file"}
-            .svg`
+              "file"}.svg`
           ).default
         }
         width="30px"

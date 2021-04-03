@@ -12,31 +12,49 @@ const main = communicator.client({
   send: data => parentPort.postMessage(data)
 });
 
+async function resolvePath(newPath) {
+
+}
+
 const handlers = {
-  async resolvePath(newPath) {
-    let normalized = normalize(newPath + "\\").toLowerCase();
-    const [root, ...rest] = normalized.split("\\");
+  async changeSearch(newPath) {
+    const normalized = normalize(newPath).replace(/\./g, "");
+    if (!normalized.includes("\\")) {
+      return { search: newPath };
+    }
+    const split = normalized.split("\\");
+    let search = split.pop();
+    const root = split[0];
     if (!root.includes(":")) {
-      const resolvedRoot = await main.invoke("getSpecialPath", root);
+      const resolvedRoot = await main.invoke(
+        "getSpecialPath",
+        root.toLowerCase()
+      );
       if (resolvedRoot) {
-        normalized = join(resolvedRoot, ...rest) + "\\";
+        split[0] = resolvedRoot;
       } else {
-        return null;
+        return { search: newPath };
       }
     }
-    try {
-      path = (await fs.realpath(normalized)).replace(/\\/g, "/") + "\\";
-      const casedRoot = root[0].toUpperCase() + root.slice(1);
-      if (rest[0]) {
-        const casedRest = path.slice(normalized.indexOf(rest.join("\\")));
-        return join(casedRoot, casedRest).replace(/\\/g, "/");
-      } else {
-        return casedRoot + "/";
+    while (true) {
+      try {
+        path = (await fs.realpath(split.join("/"))).replace(/\\/g, "/") + "/";
+        const casedRoot = root[0].toUpperCase() + root.slice(1);
+        const casedRest = split.length > 1 ? path.slice(
+          path.toLowerCase().indexOf(split.slice(1).join("/").toLowerCase())
+        ) : "";
+        return {
+          path: casedRoot + "/" + casedRest,
+          search
+        }
+      } catch {
+        const nextSearch = split.pop();
+        if (!nextSearch) break;
+        search = nextSearch + "/" + search;
       }
-    } catch {
-      return null;
     }
   },
+
   async getFolder({
     sort = "modified",
     reverse = false,
@@ -64,7 +82,7 @@ const handlers = {
     if (sort !== "name") {
       files = files.sort((a, b) => {
         const folderPriority = (b["isFolder"] - a["isFolder"]) * foldersFirst;
-        return folderPriority ||  (b[sort] - a[sort]) * (reverse ? -1 : 1);
+        return folderPriority || (b[sort] - a[sort]) * (reverse ? -1 : 1);
       });
     }
     return files;

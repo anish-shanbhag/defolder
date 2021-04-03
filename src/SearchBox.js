@@ -3,18 +3,16 @@ import { useState, useRef, useLayoutEffect, useEffect } from "react";
 import { motion, useAnimation } from "framer-motion";
 
 const MotionBox = motion(Box);
-export default function SearchBox({ openFolder }) {
-  const [value, setValue] = useState("Anish");
+export default function SearchBox({ onEnter, onChange, path, search }) {
   const [focused, setFocused] = useState(false);
 
   const input = useRef(null);
-  const search = useRef(null);
   const caretIndex = useRef(0);
 
   function changeValue(e) {
     const range = window.getSelection().getRangeAt(0);
     const clonedRange = range.cloneRange();
-    clonedRange.selectNodeContents(search.current);
+    clonedRange.selectNodeContents(input.current);
 
     clonedRange.setEnd(range.startContainer, range.startOffset);
     let start = clonedRange.toString().length;
@@ -25,25 +23,25 @@ export default function SearchBox({ openFolder }) {
       start -= e.key === "Backspace";
       end += e.key === "Delete";
     }
-    const text = search.current.textContent;
+    const text = input.current.textContent;
     start = Math.max(0, start);
     end = Math.min(text.length, end);
 
     const newText = e.key === "Backspace" || e.key === "Delete" ? "" :
       e.key ?? e.clipboardData.getData("text/plain").replace(/\n/g, "");
     caretIndex.current = start + newText.length;
-    setValue(text.slice(0, start) + newText + text.slice(end));
+    onChange(text.slice(0, start) + newText + text.slice(end));
     e.preventDefault();
   }
 
   useLayoutEffect(() => {
     if (!focused) return;
     const range = document.createRange();
-    range.setStart(search.current, 0);
-    range.selectNode(search.current);
+    range.setStart(input.current, 0);
+    range.selectNode(input.current);
     let chars = caretIndex.current;
 
-    function addToRange(node) {
+    async function addToRange(node) {
       if (chars === 0) range.setEnd(node, 0);
       else if (node.nodeType === Node.TEXT_NODE) {
         if (node.textContent.length < chars) {
@@ -60,18 +58,19 @@ export default function SearchBox({ openFolder }) {
       }
     }
 
-    addToRange(search.current);
+    addToRange(input.current);
     range.collapse(false);
     const selection = window.getSelection();
     selection.removeAllRanges();
     selection.addRange(range);
 
     const caretPosition = range.getBoundingClientRect().right;
-    const inputRightEdge = search.current.getBoundingClientRect().right;
+    const inputRightEdge = input.current.getBoundingClientRect().right;
     if (caretPosition > inputRightEdge) {
-      search.current.scrollLeft += caretPosition - inputRightEdge + 2;
+      input.current.scrollLeft += caretPosition - inputRightEdge + 2;
     }
-  }, [value, focused]);
+
+  }, [path, search, focused]);
 
   useEffect(() => {
     //setInterval(() => controls.start({ opacity: Math.random() }), 2000);
@@ -91,7 +90,7 @@ export default function SearchBox({ openFolder }) {
       borderRadius={10}
     >
       <Box
-        ref={search}
+        ref={input}
         contentEditable
         suppressContentEditableWarning
         cursor="text"
@@ -111,14 +110,17 @@ export default function SearchBox({ openFolder }) {
         }}
         onKeyDown={e => {
           if (e.key === "Backspace" || e.key === "Delete") changeValue(e);
-          else if (e.key === "Enter") e.preventDefault();
+          else if (e.key === "Enter") {
+            onEnter();
+            e.preventDefault();
+          }
         }}
         onKeyPress={changeValue}
         onPaste={changeValue}
         onBlur={() => setFocused(false)}
         onFocus={() => setFocused(true)}
       >
-        {value === "" ?
+        {search === "" && path === "" ?
           focused ? <br /> :
             <MotionBox
               color="gray.300"
@@ -142,7 +144,12 @@ export default function SearchBox({ openFolder }) {
           <MotionBox
             animate={controls}
           >
-            {value}
+            <Box>
+              {path}
+            </Box>
+            <Box color="blue">
+              {search}
+            </Box>
           </MotionBox>
         }
       </Box>
