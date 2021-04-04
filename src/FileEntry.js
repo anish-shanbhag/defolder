@@ -142,6 +142,7 @@ export default memo(function FileEntry({ data, index, style }) {
     </MotionHStack>
   );
 }, (prev, next) => {
+  if (prev.index !== next.index) return false;
   const prevFile = prev.data.files[prev.index];
   const prevKeys = Object.keys(prevFile);
   const nextFile = next.data.files[next.index];

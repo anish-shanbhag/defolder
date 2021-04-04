@@ -7,68 +7,50 @@ import { join } from "path";
 import SearchBox from "./SearchBox";
 
 // using globals instead of useRef because there is only one Explorer component
-let path = null, scrolled = false, rendered = true;
+let scrolled = false, loading = false;
 
 export default function Explorer() {
 
-  const [path, setPath] = useState("");
-  const [search, setSearch] = useState("");
+
+  const [search, setSearch] = useState({ path: "", filter: "" });
   const [files, setFiles] = useState([]);
 
-  const searchBox = useRef(null);
   const fileList = useRef(null);
 
   function openFile(file) {
     if (file.isFolder) {
-      openFolder(join(path, file.name));
+      changeSearch(join(search.path, file.name, "/"));
     } else {
-      main.send("open", join(path, file.name));
+      main.send("open", join(search.path, file.name));
     }
   }
 
   async function goBack() {
-    openFolder(join(path, "../"));
-  }
-
-  async function openFolder(folderPath) {
-    const resolvedPath = await server.invoke("resolvePath", folderPath);
-    if (resolvedPath && path !== resolvedPath) {
-      path = resolvedPath;
-      const newFiles = await server.invoke("getFolder", {
-        path: folderPath,
-        sort: "modified"
-      });
-      // need to deal with errors from above
-      rendered = false;
-      setFiles(newFiles);
-      if (searchBox.current) searchBox.current.value = path;
-      if (scrolled) {
-        fileList.current?.scrollTo(0);
-      }
-    } else {
-      console.log("Invalid path");
-    }
+    changeSearch(join(search.path, "../"));
   }
 
   async function changeSearch(value) {
-    const { path: newPath, search: newSearch } = await server.invoke("changeSearch", value);
-    setSearch(newSearch);
-    if (newPath) {
-      if (path !== newPath) {
-        setPath(newPath);
-        const newFiles = await server.invoke("getFolder", {
-          sort: "modified"
-        });
-        // need to deal with errors from above
-        rendered = false;
-        setFiles(newFiles);
-        // if (searchBox.current) searchBox.current.value = path;
-        if (scrolled) {
-          fileList.current?.scrollTo(0);
-        }
+    const newSearch = await server.invoke("changeSearch", value);
+    if (search.path !== newSearch.path) {
+      loading = true;
+      setSearch({
+        path: newSearch.path,
+        filter: newSearch.filter
+      });
+      const newFiles = await server.invoke("getFolder", {
+        sort: "modified"
+      });
+      loading = false;
+      setFiles(newFiles);
+      if (scrolled) {
+        fileList.current?.scrollTo(0);
       }
+      server.emit("getFolderSizes");
     } else {
-      setPath("");
+      setSearch({
+        path: newSearch.path,
+        filter: newSearch.filter
+      });
     }
   }
 
@@ -87,18 +69,11 @@ export default function Explorer() {
       });
     });
 
-    openFolder("C:/");
+    // openFolder("C:/");
 
   }, []);
 
-  useEffect(() => {
-    if (!rendered) {
-      rendered = true;
-      setTimeout(() => server.emit("getFolderSizes"), 0);
-    }
-  }, [files]);
-
-  const filtered = files.filter(file => file.name.includes(search));
+  const filteredFiles = loading ? [] : files.filter(file => file.name.includes(search.filter));
 
   return (
     <Profiler id="a" onRender={(id, b, actualDuration) => /* console.log(id, Date.now(), actualDuration)*/ null}>
@@ -107,22 +82,22 @@ export default function Explorer() {
           <Button onClick={goBack} colorScheme="blue" boxShadow="lg" m={2}>Back</Button>
           <SearchBox
             onChange={changeSearch}
-            onEnter={openFolder}
-            path={path}
+            // onEnter={openFolder}
             search={search}
+            files={filteredFiles}
           />
         </HStack>
 
         <AutoSizer>
-          {({ height, width }) => files &&
+          {({ height, width }) => !filteredFiles.length ? null :
             <List
-              itemCount={filtered.length}
+              itemCount={filteredFiles.length}
               itemSize={45}
               height={height - 100}
               width={width}
               overscanCount={5}
-              itemData={{ files: filtered, onClick: openFile }}
-              itemKey={index => path + filtered[index].name}
+              itemData={{ files: filteredFiles, onClick: openFile }}
+              itemKey={index => search.path + filteredFiles[index].name}
               ref={fileList}
               onScroll={({ scrollOffset, scrollUpdateWasRequested }) => {
                 scrolled = !scrollUpdateWasRequested && scrollOffset !== 0;

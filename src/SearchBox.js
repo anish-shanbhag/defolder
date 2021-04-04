@@ -3,33 +3,34 @@ import { useState, useRef, useLayoutEffect, useEffect } from "react";
 import { motion, useAnimation } from "framer-motion";
 
 const MotionBox = motion(Box);
-export default function SearchBox({ onEnter, onChange, path, search }) {
+export default function SearchBox({ onEnter, onChange, search, files }) {
   const [focused, setFocused] = useState(false);
 
-  const input = useRef(null);
+  const editable = useRef(null);
   const caretIndex = useRef(0);
+  const oldLength = useRef(0);
 
   function changeValue(e) {
     const range = window.getSelection().getRangeAt(0);
     const clonedRange = range.cloneRange();
-    clonedRange.selectNodeContents(input.current);
+    clonedRange.selectNodeContents(editable.current);
 
     clonedRange.setEnd(range.startContainer, range.startOffset);
     let start = clonedRange.toString().length;
     clonedRange.setEnd(range.endContainer, range.endOffset);
     let end = clonedRange.toString().length;
-
     if (start === end) {
       start -= e.key === "Backspace";
       end += e.key === "Delete";
     }
-    const text = input.current.textContent;
+    const text = editable.current.textContent;
     start = Math.max(0, start);
     end = Math.min(text.length, end);
 
+
     const newText = e.key === "Backspace" || e.key === "Delete" ? "" :
       e.key ?? e.clipboardData.getData("text/plain").replace(/\n/g, "");
-    caretIndex.current = start + newText.length;
+    caretIndex.current = end;
     onChange(text.slice(0, start) + newText + text.slice(end));
     e.preventDefault();
   }
@@ -37,9 +38,11 @@ export default function SearchBox({ onEnter, onChange, path, search }) {
   useLayoutEffect(() => {
     if (!focused) return;
     const range = document.createRange();
-    range.setStart(input.current, 0);
-    range.selectNode(input.current);
-    let chars = caretIndex.current;
+    range.setStart(editable.current, 0);
+    range.selectNode(editable.current);
+    const newLength = search.path.length + search.filter.length;
+    let chars = caretIndex.current + newLength - oldLength.current;
+    oldLength.current = newLength;
 
     async function addToRange(node) {
       if (chars === 0) range.setEnd(node, 0);
@@ -58,25 +61,31 @@ export default function SearchBox({ onEnter, onChange, path, search }) {
       }
     }
 
-    addToRange(input.current);
+    addToRange(editable.current);
     range.collapse(false);
     const selection = window.getSelection();
     selection.removeAllRanges();
     selection.addRange(range);
 
     const caretPosition = range.getBoundingClientRect().right;
-    const inputRightEdge = input.current.getBoundingClientRect().right;
+    const inputRightEdge = editable.current.getBoundingClientRect().right;
     if (caretPosition > inputRightEdge) {
-      input.current.scrollLeft += caretPosition - inputRightEdge + 2;
+      editable.current.scrollLeft += caretPosition - inputRightEdge + 2;
     }
 
-  }, [path, search, focused]);
-
-  useEffect(() => {
-    //setInterval(() => controls.start({ opacity: Math.random() }), 2000);
-  }, []);
+  }, [focused, search]);
 
   const controls = useAnimation();
+
+  useEffect(() => {
+    if (files.length > 0) {
+      controls.start("results");
+    } else {
+      controls.start("noResults");
+    }
+  }, [controls, files]);
+
+  const splitPath = search.path.split("/").slice(0, -1);
 
   return (
     <Box
@@ -90,7 +99,7 @@ export default function SearchBox({ onEnter, onChange, path, search }) {
       borderRadius={10}
     >
       <Box
-        ref={input}
+        ref={editable}
         contentEditable
         suppressContentEditableWarning
         cursor="text"
@@ -120,7 +129,7 @@ export default function SearchBox({ onEnter, onChange, path, search }) {
         onBlur={() => setFocused(false)}
         onFocus={() => setFocused(true)}
       >
-        {search === "" && path === "" ?
+        {search.filter === "" && search.path === "" ?
           focused ? <br /> :
             <MotionBox
               color="gray.300"
@@ -129,7 +138,7 @@ export default function SearchBox({ onEnter, onChange, path, search }) {
               variants={{
                 initial: {
                   scale: 0.9,
-                  opacity: 0,
+                  opacity: 0
                 },
                 animate: {
                   scale: 1,
@@ -141,16 +150,84 @@ export default function SearchBox({ onEnter, onChange, path, search }) {
               Search for anything...
             </MotionBox>
           :
-          <MotionBox
-            animate={controls}
-          >
-            <Box>
-              {path}
-            </Box>
-            <Box color="blue">
-              {search}
-            </Box>
-          </MotionBox>
+          <>
+            {
+              search.path !== "" &&
+              <Box mr={2}>
+                {
+                  splitPath.map((folder, i) => {
+                    const pathPortion = splitPath.slice(0, i + 1).join("/");
+                    return (
+                      <MotionBox
+                        key={pathPortion}
+                        initial={{
+                          opacity: 0,
+                          x: 10,
+                          scale: 0.8
+                        }}
+                        animate={{
+                          opacity: 1,
+                          x: 0,
+                          scale: 1
+                        }}
+                      >
+                        <MotionBox
+                          cursor="pointer"
+                          onContextMenu={() => console.log(pathPortion)}
+                          whileHover={{
+                            color: "#A0AEC0",
+                            scale: 0.95,
+                            transition: { duration: 0.1 }
+                          }}
+                        >
+                          {folder}
+                        </MotionBox>
+                      /
+                      </MotionBox>
+                    )
+                  })
+                }
+              </Box>
+            }
+
+            {search.filter !== "" &&
+              <MotionBox
+                initial={{
+                  opacity: 0,
+                  x: 10,
+                  scale: 0.8
+                }}
+                animate={{
+                  opacity: 1,
+                  x: 0,
+                  scale: 1
+                }}
+              >
+                <MotionBox
+                  animate={controls}
+                  px={2}
+                  borderRadius={10}
+                  initial="results"
+                  variants={{
+                    results: {
+                      backgroundImage: "linear-gradient(to right, #0072ff, #00c6ff)",
+                      transition: {
+                        duration: 0.2
+                      }
+                    },
+                    noResults: {
+                      backgroundImage: "linear-gradient(to right, #FF416C, #FF4B2B)",
+                      transition: {
+                        duration: 0.2
+                      }
+                    }
+                  }}
+                >
+                  {search.filter}
+                </MotionBox>
+              </MotionBox>
+            }
+          </>
         }
       </Box>
     </Box>

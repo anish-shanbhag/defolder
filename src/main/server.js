@@ -2,7 +2,6 @@ const { parentPort } = require("worker_threads");
 const { fork, exec } = require("child_process");
 const fs = require("fs").promises;
 const ipc = require("node-ipc");
-const { join, normalize } = require("path");
 const communicator = require("./communicator");
 
 let folderSizeProcess = null, count = 0, socket = null, files = null, path = null;
@@ -12,18 +11,13 @@ const main = communicator.client({
   send: data => parentPort.postMessage(data)
 });
 
-async function resolvePath(newPath) {
-
-}
-
 const handlers = {
   async changeSearch(newPath) {
-    const normalized = normalize(newPath).replace(/\./g, "");
-    if (!normalized.includes("\\")) {
-      return { search: newPath };
-    }
-    const split = normalized.split("\\");
-    let search = split.pop();
+    const normalized = newPath.replace(/[\\/]+/g, "/");
+    const withoutPath = { path: "", filter: normalized };
+    if (!normalized.includes("/")) return withoutPath;
+    const split = normalized.split("/");
+    let filter = split.pop();
     const root = split[0];
     if (!root.includes(":")) {
       const resolvedRoot = await main.invoke(
@@ -32,25 +26,24 @@ const handlers = {
       );
       if (resolvedRoot) {
         split[0] = resolvedRoot;
-      } else {
-        return { search: newPath };
-      }
+      } else return withoutPath;
     }
     while (true) {
       try {
-        path = (await fs.realpath(split.join("/"))).replace(/\\/g, "/") + "/";
+        path = (await fs.realpath(split.join("/") + "/")).replace(/\\/g, "/");
+        if (!path.endsWith("/")) path += "/";
         const casedRoot = root[0].toUpperCase() + root.slice(1);
         const casedRest = split.length > 1 ? path.slice(
           path.toLowerCase().indexOf(split.slice(1).join("/").toLowerCase())
         ) : "";
         return {
           path: casedRoot + "/" + casedRest,
-          search
+          filter
         }
       } catch {
         const nextSearch = split.pop();
-        if (!nextSearch) break;
-        search = nextSearch + "/" + search;
+        if (split.length === 0) return withoutPath;
+        filter = nextSearch + "/" + filter;
       }
     }
   },
