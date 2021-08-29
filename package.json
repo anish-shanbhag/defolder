@@ -21,8 +21,9 @@
     "lodash.throttle": "4.1.1",
     "node-ipc": "9.1.4",
     "promisify-child-process": "4.1.1",
-    "react": "^17.0.1",
-    "react-dom": "^17.0.1",
+    "react": "0.0.0-experimental-b4f119cdf",
+    "react-defer-renderer": "0.1.0",
+    "react-dom": "0.0.0-experimental-b4f119cdf",
     "react-virtualized-auto-sizer": "1.0.5",
     "react-window": "1.8.6"
   },

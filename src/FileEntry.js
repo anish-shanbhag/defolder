@@ -146,6 +146,8 @@ export default memo(function FileEntry({ data, index, style }) {
   const prevFile = prev.data.files[prev.index];
   const prevKeys = Object.keys(prevFile);
   const nextFile = next.data.files[next.index];
+  console.log(prevKeys.length === Object.keys(nextFile).length
+    && prevKeys.every(key => prevFile[key] === nextFile[key]));
   return prevKeys.length === Object.keys(nextFile).length
     && prevKeys.every(key => prevFile[key] === nextFile[key]);
 });

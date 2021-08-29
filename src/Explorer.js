@@ -11,7 +11,6 @@ let scrolled = false, loading = false;
 
 export default function Explorer() {
 
-
   const [search, setSearch] = useState({ path: "", filter: "" });
   const [files, setFiles] = useState([]);
 
@@ -31,12 +30,10 @@ export default function Explorer() {
 
   async function changeSearch(value) {
     const newSearch = await server.invoke("changeSearch", value);
+    process.nextTick(() => setSearch(newSearch));
     if (search.path !== newSearch.path) {
       loading = true;
-      setSearch({
-        path: newSearch.path,
-        filter: newSearch.filter
-      });
+      
       const newFiles = await server.invoke("getFolder", {
         sort: "modified"
       });
@@ -46,11 +43,6 @@ export default function Explorer() {
         fileList.current?.scrollTo(0);
       }
       server.emit("getFolderSizes");
-    } else {
-      setSearch({
-        path: newSearch.path,
-        filter: newSearch.filter
-      });
     }
   }
 
@@ -73,7 +65,7 @@ export default function Explorer() {
 
   }, []);
 
-  const filteredFiles = loading ? [] : files.filter(file => file.name.includes(search.filter));
+  const filteredFiles = files.filter(file => file.name.toLowerCase().includes(search.filter.toLowerCase()));
 
   return (
     <Profiler id="a" onRender={(id, b, actualDuration) => /* console.log(id, Date.now(), actualDuration)*/ null}>

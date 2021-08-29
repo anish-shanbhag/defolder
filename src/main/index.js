@@ -29,7 +29,7 @@ async function createWindow() {
   mainWindow.on("closed", () => mainWindow = null);
 
   require("./dev");
-  mainWindow.webContents.once("dom-ready", () => mainWindow.webContents.openDevTools());
+  if (dev) mainWindow.webContents.once("dom-ready", () => mainWindow.webContents.openDevTools());
 
   const server = new Worker(__dirname + "/server.js");
   communicator.server({

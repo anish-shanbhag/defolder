@@ -1,6 +1,6 @@
 import { Box } from "@chakra-ui/react";
 import { useState, useRef, useLayoutEffect, useEffect } from "react";
-import { motion, useAnimation } from "framer-motion";
+import { AnimatePresence, motion, useAnimation } from "framer-motion";
 
 const MotionBox = motion(Box);
 export default function SearchBox({ onEnter, onChange, search, files }) {
@@ -87,6 +87,43 @@ export default function SearchBox({ onEnter, onChange, search, files }) {
 
   const splitPath = search.path.split("/").slice(0, -1);
 
+  const pathPortions = splitPath.map((folder, i) => {
+    const pathPortion = splitPath.slice(0, i + 1).join("/");
+    return (
+      <MotionBox
+        key={pathPortion}
+        initial={{
+          opacity: 0,
+          x: 10,
+          scale: 0.8
+        }}
+        animate={{
+          opacity: 1,
+          x: 0,
+          scale: 1
+        }}
+        exit={{
+          opacity: 0,
+          x: 10,
+          scale: 0.8
+        }}
+      >
+        <MotionBox
+          cursor="pointer"
+          onContextMenu={() => console.log(pathPortion)}
+          whileHover={{
+            color: "#A0AEC0",
+            scale: 0.95,
+            transition: { duration: 0.1 }
+          }}
+        >
+          {folder}
+        </MotionBox>
+        /
+      </MotionBox>
+    )
+  });
+
   return (
     <Box
       fontSize="3xl"
@@ -155,37 +192,11 @@ export default function SearchBox({ onEnter, onChange, search, files }) {
               search.path !== "" &&
               <Box mr={2}>
                 {
-                  splitPath.map((folder, i) => {
-                    const pathPortion = splitPath.slice(0, i + 1).join("/");
-                    return (
-                      <MotionBox
-                        key={pathPortion}
-                        initial={{
-                          opacity: 0,
-                          x: 10,
-                          scale: 0.8
-                        }}
-                        animate={{
-                          opacity: 1,
-                          x: 0,
-                          scale: 1
-                        }}
-                      >
-                        <MotionBox
-                          cursor="pointer"
-                          onContextMenu={() => console.log(pathPortion)}
-                          whileHover={{
-                            color: "#A0AEC0",
-                            scale: 0.95,
-                            transition: { duration: 0.1 }
-                          }}
-                        >
-                          {folder}
-                        </MotionBox>
-                      /
-                      </MotionBox>
-                    )
-                  })
+                  //search.filter === "" ?
+                  //<AnimatePresence>
+                    pathPortions
+                 // </AnimatePresence>
+                  //: pathPortions
                 }
               </Box>
             }
