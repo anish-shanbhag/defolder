@@ -6,9 +6,9 @@ Defolder is a modern file explorer for Windows filled with unique features like 
 
 # Screenshots/Videos
 
-![Screenshot](https://anish-shanbhag.github.io/defolder/media/screenshot.png)
+![Screenshot](https://raw.githubusercontent.com/anish-shanbhag/defolder/master/media/screenshot.png)
 
-![Video](https://anish-shanbhag.github.io/defolder/media/video.mp4)
+![Video](https://raw.githubusercontent.com/anish-shanbhag/defolder/master/media/video.mp4)
 
 
 # Technologies Used
