@@ -1,5 +1,5 @@
 {
-  "name": "file-explorer",
+  "name": "defolder",
   "version": "0.1.0",
   "private": true,
   "main": "src/main/index.js",
